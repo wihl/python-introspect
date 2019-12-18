@@ -39,16 +39,53 @@ def traverse(module, depth = 1):
             print('   ' * (depth + 1), class_name)
         traverse(submod, depth + 1)
 
+def fixed_traverse(module):
+    for name, val in inspect.getmembers(module, inspect.ismodule):
+        print('---',name)
+        for n2, val2 in inspect.getmembers(val, inspect.ismodule):
+            print ('---' * 2, n2)
+            for n3, val3 in inspect.getmembers(val2, inspect.isclass):
+                print ('   ' * 3, n3)
+
+def show_dir(directory):
+    print ('directory:', directory)
+    try:
+        for root, dirs, files in os.walk(directory):
+            if os.path.basename(root) == '__pycache__':
+                continue
+            path = root.split(os.sep)
+            print((len(path) - 1) * '---', os.path.basename(root))
+            for file in files:
+                if not file.endswith('.py'):
+                    continue
+                if file.endswith(('_grpc.py', 'init__.py')):
+                    continue
+                fullpath = root + os.sep + file
+                print(fullpath)
+                # remove trailing .py from file
+                spec = importlib.util.spec_from_file_location(file[:-3],fullpath)
+                foo = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(foo)
+                #breakpoint()
+                for class_name, cls_ in inspect.getmembers(foo, inspect.isclass):
+                    print((len(path)) * '   ', class_name, type(cls_))
+
+
+    except:
+        print ('exception occurred')
+        sys.exit(1)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Produce a dict of all public values by introspection.')
-    # The following argument(s) should be provided to run the example.
-    parser.add_argument('-m', '--module', type=str,
+    grp = parser.add_mutually_exclusive_group()
+    grp.add_argument('-m', '--mod', type=str,
                         required=False, help='Starting module.',
                         default='google.ads.google_ads.v2.proto')
+    # XXX: Obviously the default will change
+    grp.add_argument('-d', '--dir', type=str,
+                        required=False, help='Starting directory.',
+                        default='/usr/local/google/home/davidwihl/Projects/ads/python/google-ads-python/google/ads/google_ads/v2/proto/')
     args = parser.parse_args()
-    module = importlib.import_module(args.module)
-    dirname = os.path.dirname(module.__file__)
 
-
-    traverse(module)
+    show_dir(args.dir)
