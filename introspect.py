@@ -39,29 +39,6 @@ def traverse(module, depth = 1):
             print('   ' * (depth + 1), class_name)
         traverse(submod, depth + 1)
 
-def main(module):
-    for name, val in inspect.getmembers(module, inspect.ismodule):
-        print('---',name)
-        for n2, val2 in inspect.getmembers(val, inspect.ismodule):
-            print ('---' * 2, n2)
-            for n3, val3 in inspect.getmembers(val2, inspect.isclass):
-                print ('   ' * 3, n3)
-
-def show_dir(directory):
-    print ('directory:', directory)
-    try:
-        for root, dirs, files in os.walk(directory):
-            path = root.split(os.sep)
-            print((len(path) - 1) * '---', os.path.basename(root))
-            for file in files:
-                if not file.endswith('.py'):
-                    continue
-                print(root + os.sep + file)
-    except:
-        print ('exception occurred')
-        sys.exit(1)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Produce a dict of all public values by introspection.')
