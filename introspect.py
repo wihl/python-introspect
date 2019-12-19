@@ -24,7 +24,7 @@ import importlib
 import inspect
 import pprint as pp
 
-PREFIX='google.ads.google_ads.v2.'
+PREFIX='google.ads.google_ads.v2.proto.'
 
 def traverse(module, depth = 1):
     for name, submod in inspect.getmembers(module, inspect.ismodule):
@@ -56,20 +56,21 @@ def show_dir(directory):
             if os.path.basename(root) == '__pycache__':
                 continue
             path = root.split(os.sep)
-            #  print((len(path) - 1) * '---', os.path.basename(root))
+            print((len(path) - 1) * '---', os.path.basename(root))
             for file in files:
                 if not file.endswith('.py'):
                     continue
                 if file.endswith(('_grpc.py', 'init__.py')):
                     continue
                 fullpath = root + os.sep + file
-                # print(fullpath)
+                print(fullpath)
                 # remove trailing .py from file
                 spec = importlib.util.spec_from_file_location(file[:-3],fullpath)
                 foo = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(foo)
                 for class_name, _ in inspect.getmembers(foo, inspect.isclass):
-                    print(f"    {class_name}='{PREFIX+os.path.basename(root)}.{file[:-3]}',")
+                #    print(f"    {class_name}='{PREFIX+os.path.basename(root)}.{file[:-3]}',")
+                    print(len(path) * '   ', class_name)
         print (')')
 
 
