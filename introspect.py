@@ -12,8 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Import a directory containing a hierarchy of Python files
-and produce a dict containing all exported elements.
+"""Import a directory or module containing a hierarchy of Python files
+and produce a dict or printout containing all exported classes.
+This is useful to populate a types.py file to implement lazy loading
+of a complex object hierarchy in Python 3.7+.
+
+This assumes that the hierarchy may contain Google protobuf definitions,
+so superfluous 'google_dot' and '*grpc' modules are filtered.
 """
 
 
@@ -25,8 +30,9 @@ import inspect
 import pprint as pp
 
 PREFIX='google.ads.google_ads.v2.proto.'
+DEFAULT_DIR = '/Users/wihl/Projects/Google/google-ads-python/google/ads/google_ads/v2/proto'
 
-def traverse(module, depth = 1):
+def traverse_module(module, depth = 1):
     for name, submod in inspect.getmembers(module, inspect.ismodule):
         if name.startswith(('_','google_dot_','path')):
             continue
@@ -39,7 +45,7 @@ def traverse(module, depth = 1):
         print('---' * depth, name)
         for class_name, _ in inspect.getmembers(submod, inspect.isclass):
             print('   ' * (depth + 1), class_name)
-        traverse(submod, depth + 1)
+        traverse_module(submod, depth + 1)
 
 def fixed_traverse(module):
     for name, val in inspect.getmembers(module, inspect.ismodule):
@@ -49,34 +55,42 @@ def fixed_traverse(module):
             for n3, val3 in inspect.getmembers(val2, inspect.isclass):
                 print ('   ' * 3, n3)
 
-def show_dir(directory):
-    try:
-        print ('_lazy_class_to_package_map = dict(')
-        for root, dirs, files in os.walk(directory):
+def traverse_dir(directory, to_print):
+    #try:
+        if to_print:
+            print (f'Starting directiory: {directory}\n')
+        else:
+            print ('_lazy_class_to_package_map = dict(')
+        for root, _, files in os.walk(directory):
             if os.path.basename(root) == '__pycache__':
                 continue
-            path = root.split(os.sep)
-            print((len(path) - 1) * '---', os.path.basename(root))
+            n_dirs = len(root.split(os.sep)) - len(directory.split(os.sep)) + 1
+            if to_print:
+                print((n_dirs) * '---', os.path.basename(root))
             for file in files:
                 if not file.endswith('.py'):
                     continue
                 if file.endswith(('_grpc.py', 'init__.py')):
                     continue
                 fullpath = root + os.sep + file
-                print(fullpath)
+                if to_print:
+                    print((n_dirs + 1) * '   ' + file)
                 # remove trailing .py from file
                 spec = importlib.util.spec_from_file_location(file[:-3],fullpath)
                 foo = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(foo)
                 for class_name, _ in inspect.getmembers(foo, inspect.isclass):
-                #    print(f"    {class_name}='{PREFIX+os.path.basename(root)}.{file[:-3]}',")
-                    print(len(path) * '   ', class_name)
-        print (')')
+                    if to_print:
+                        print((n_dirs + 2) * '   ', class_name)
+                    else:
+                        print(f"    {class_name}='{PREFIX+os.path.basename(root)}.{file[:-3]}',")
+        if not to_print:
+            print (')')
 
 
-    except:
-        print ('exception occurred')
-        sys.exit(1)
+    # except:
+    #     print ('exception occurred')
+    #     sys.exit(1)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -85,10 +99,11 @@ if __name__ == '__main__':
     grp.add_argument('-m', '--mod', type=str,
                         required=False, help='Starting module.',
                         default='google.ads.google_ads.v2.proto')
-    # XXX: Obviously the default will change
     grp.add_argument('-d', '--dir', type=str,
                         required=False, help='Starting directory.',
-                        default='/usr/local/google/home/davidwihl/Projects/ads/python/google-ads-python/google/ads/google_ads/v2/proto/')
+                        default=DEFAULT_DIR)
+    parser.add_argument('-p', '--print', action='store_true', required=False,
+                        help='Print results (instead of producing a dict)')
     args = parser.parse_args()
-
-    show_dir(args.dir)
+    #breakpoint()
+    traverse_dir(args.dir, args.print)
