@@ -81,7 +81,12 @@ def traverse_dir(directory, to_print):
             # remove trailing .py from file
             spec = importlib.util.spec_from_file_location(file[:-3],fullpath)
             foo = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(foo)
+            try:
+              spec.loader.exec_module(foo)
+            except Exception as e:
+              print(f"ERROR module={foo}  exception={e}")
+              continue
+
             for class_name, _ in inspect.getmembers(foo, inspect.isclass):
                 if to_print:
                     print((n_dirs + 2) * '   ', class_name)
@@ -103,9 +108,15 @@ if __name__ == '__main__':
                         help='Print results (instead of producing a dict)')
     args = parser.parse_args()
     if args.dir:
-        traverse_dir(args.dir, args.print)
+      if not os.path.isdir(args.dir):
+        print(f"directory {args.dir} cannot be found")
+        sys.exit()
+      traverse_dir(args.dir, args.print)
     elif args.mod:
         module = importlib.import_module(args.mod)
         traverse_module(module)
     else:
         traverse_dir(DEFAULT_DIR, args.print)
+
+
+
