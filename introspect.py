@@ -81,15 +81,45 @@ def traverse_dir(directory, to_print):
             # remove trailing .py from file
             spec = importlib.util.spec_from_file_location(file[:-3],fullpath)
             foo = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(foo)
+#            try:
+#                spec.loader.exec_module(foo)
+#            except Exception as e:
+#                print(f"ERROR module={foo}  exception={e}")
+#                continue
+
+            try:
+                is_importable(fullpath)
+            except Exception as e:
+                print(f"ERROR {fullpath}:{e}")
+                continue              
+
+            members = inspect.getmembers(foo, inspect.isclass)
+            if not members:
+              print(f"ERROR members empty for {fullpath}")
+              continue
+
+
             for class_name, _ in inspect.getmembers(foo, inspect.isclass):
+                breakpoint()
                 if to_print:
                     print((n_dirs + 2) * '   ', class_name)
                 else:
                     print(f"    {class_name}='{PREFIX+'.'+os.path.basename(root)}.{file[:-3]}',")
+
     if not to_print:
         print (')')
 
+def is_importable(fullpath):
+    """ Test whether the file in the fullpath can be imported. """
+    parts = fullpath.split(os.sep)
+    fname = parts[-1][:-3]
+    my_globals = {}
+
+    x = f"from google.ads.google_ads.v999.proto.{parts[-2]} import {fname}"
+    try:
+        exec(x, my_globals)
+    except Exception as e:
+        raise e
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -103,9 +133,15 @@ if __name__ == '__main__':
                         help='Print results (instead of producing a dict)')
     args = parser.parse_args()
     if args.dir:
-        traverse_dir(args.dir, args.print)
+      if not os.path.isdir(args.dir):
+        print(f"directory {args.dir} cannot be found")
+        sys.exit()
+      traverse_dir(args.dir, args.print)
     elif args.mod:
         module = importlib.import_module(args.mod)
         traverse_module(module)
     else:
         traverse_dir(DEFAULT_DIR, args.print)
+
+
+
