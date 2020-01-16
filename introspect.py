@@ -79,21 +79,40 @@ def traverse_dir(directory, to_print):
             if to_print:
                 print((n_dirs + 1) * '   ' + file)
             # remove trailing .py from file
-            spec = importlib.util.spec_from_file_location(file[:-3],fullpath)
+            fname = file[:-3]
+            spec = importlib.util.spec_from_file_location(fname, fullpath)
             foo = importlib.util.module_from_spec(spec)
-            try:
-              spec.loader.exec_module(foo)
-            except Exception as e:
-              print(f"ERROR module={foo}  exception={e}")
-              continue
 
-            for class_name, _ in inspect.getmembers(foo, inspect.isclass):
-                if to_print:
-                    print((n_dirs + 2) * '   ', class_name)
-                else:
-                    print(f"    {class_name}='{PREFIX+'.'+os.path.basename(root)}.{file[:-3]}',")
+            try:
+                #spec.loader.exec_module(foo)
+                is_importable(fullpath)
+            except Exception as e:
+                print(f"ERROR module={foo}  exception={e}")
+                continue
+
+            print(f"Imported {fname}")
+            # for class_name, _ in inspect.getmembers(foo, inspect.isclass):
+            #     if to_print:
+            #         print((n_dirs + 2) * '   ', class_name)
+            #     else:
+            #         print(f"    {class_name}='{PREFIX+'.'+os.path.basename(root)}.{file[:-3]}',")
     if not to_print:
         print (')')
+
+
+def is_importable(fullpath):
+    """ Test whether the file in the fullpath can be imported. """
+    parts = fullpath.split(os.sep)
+    fname = parts[-1][:-3]
+    my_globals = {}
+
+    x = f"from google.ads.google_ads.v999.proto.{parts[-2]} import {fname}"
+    y = f"google.ads.google_ads.v999.proto.{parts[-2]}.{fname}"
+    try:
+        # exec(x, my_globals)
+        importlib.import_module(y)
+    except Exception as e:
+        raise e
 
 
 if __name__ == '__main__':
